@@ -1,0 +1,106 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/miscdevice.h>
+#include <linux/fs.h>
+#include <asm/uaccess.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("JulianGindi");
+MODULE_DESCRIPTION("A simple hello world module");
+
+static struct miscdevice *hello_dev;
+
+static ssize_t hello_read(struct file *file, char *buf,
+			  size_t count, loff_t *off)
+{
+	char my_id[15] = "f09605a798d4";
+	if (*off == 0) {
+		if (copy_to_user(buf, &my_id, 12) != 0) {
+			return -EFAULT;
+		} else {
+			(*off)++;
+			return 12;
+		}
+	} else
+		return 0;
+};
+
+static ssize_t hello_write(struct file *file, char *buf,
+			   size_t count, loff_t *off)
+{
+	char *user_input[50];
+
+	if (count <= 0)
+		return -EFAULT;
+	else if (copy_from_user(&user_input, buf, count) != 0)
+		return -EFAULT;
+	else if (strcmp(user_input, "f09605a798d4") == 0)
+		return count;
+	else
+		return -EINVAL;
+};
+
+static int hello_open(struct inode *i, struct file *f)
+{
+	return 0;
+};
+
+static int hello_close(struct inode *i, struct file *f)
+{
+	return 0;
+};
+
+static const struct file_operations hello_fops = {
+	.owner = THIS_MODULE,
+	.read = hello_read,
+	.write = hello_write,
+	.release = hello_close,
+	.open = hello_open
+};
+
+static struct miscdevice hello_dev = {
+	MISC_DYNAMIC_MINOR,
+
+	"eudyptula",
+
+	&hello_fops
+};
+
+int create_device(char *ident, struct file_operations *fops)
+{
+	hello_dev = malloc(sizeof(struct miscdevice));
+
+	hello_dev->minor = MISC_DYNAMIC_MINOR;
+	hello_dev->name = strdup(ident);
+	hello_dev->fops = &fops;
+
+	return 0;
+};
+
+
+static int __init hello_init(void)
+{
+	int returnVal;
+
+	create_device("eudyptula", &my_fops);
+
+	returnVal = misc_register(&hello_dev);
+	if (returnVal)
+		printk(KERN_ERR "Error loading hello world misc device");
+
+	/* Never getting rid of this line */
+	printk(KERN_DEBUG "Hello world!\n");
+
+	return returnVal;
+};
+
+
+static void __exit hello_cleanup(void)
+{
+	misc_deregister(&hello_dev);
+	printk(KERN_DEBUG "Cleaning up module.\n");
+};
+
+module_init(hello_init);
+module_exit(hello_cleanup);

@@ -1,0 +1,62 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <asm/delay.h>
+#include <linux/slab.h>
+
+int do_work(int *my_int, int retval)
+{
+	int x;
+	int y = *my_int;
+	int z;
+
+	for (x = 0; x < *my_int; ++x)
+		udelay(10);
+
+
+	if (y < 10)
+		netdev_dbg("We slept a long time!");
+
+	z = x * y;
+
+	return z;
+}
+
+int my_init(void)
+{
+	int x = 10;
+
+	x = do_work(&x, x);
+
+	return x;
+}
+
+void my_exit(void)
+{
+	return;
+}
+
+module_init(my_init);
+module_exit(my_exit);
+
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("JulianGindi");
+MODULE_DESCRIPTION("A simple hello world module");
+
+static int __init hello_init(void)
+{
+	netdev_dbg("Hello world!\n");
+	return 0;
+}
+
+static void __exit hello_cleanup(void)
+{
+	netdev_dbg("Cleaning up module.\n");
+}
+
+module_init(hello_init);
+module_exit(hello_cleanup);
