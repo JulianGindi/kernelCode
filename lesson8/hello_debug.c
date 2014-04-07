@@ -44,7 +44,7 @@ static ssize_t hello_write(struct file *file, char *buf,
 	char user_input[15];
 
 	if (count <= 0 || count > 15)
-		return -EFAULT;
+		return -EINVAL;
 	if (copy_from_user(&user_input, buf, count) != 0)
 		return -EFAULT;
 	if (strncmp(user_input, "f09605a798d4", 12) == 0)
@@ -94,7 +94,7 @@ static ssize_t foo_read(struct file *file, char *buf,
 
 
 	if (foo_len > 4096)
-		return -EFAULT;
+		return -EINVAL;
 	if (*off == 0) {
 		if (copy_to_user(buf, &foo_input, foo_len) != 0) {
 			return -EFAULT;
@@ -111,7 +111,7 @@ static ssize_t foo_write(struct file *file, char *buf,
 {
 
 	if (count > 4096)
-		return -EFAULT;
+		return -EINVAL;
 	if (copy_from_user(&foo_input, buf, count) != 0)
 		return -EFAULT;
 
