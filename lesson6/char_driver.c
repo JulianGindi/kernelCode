@@ -5,7 +5,6 @@
 #include <linux/fs.h>
 #include <asm/uaccess.h>
 #include <linux/string.h>
-#include <stdlib.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("JulianGindi");
@@ -31,9 +30,9 @@ static ssize_t hello_read(struct file *file, char *buf,
 static ssize_t hello_write(struct file *file, char *buf,
 			   size_t count, loff_t *off)
 {
-	char user_input[count];
+	char user_input[15];
 
-	if (count <= 0)
+	if (count <= 0 || count > 15)
 		return -EFAULT;
 	else if (copy_from_user(&user_input, buf, count) != 0)
 		return -EFAULT;
@@ -65,7 +64,7 @@ static int __init hello_init(void)
 	dev_init("eudyptula", &hello_fops);
 
 	ret = misc_register(&hello_dev);
-	if (returnVal)
+	if (ret)
 		printk(KERN_ERR "Error loading hello world misc device");
 
 	/* Never getting rid of this line */
