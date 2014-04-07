@@ -24,8 +24,8 @@ static ssize_t hello_read(struct file *file, char *buf,
 {
 	const char *my_id = "f09605a798d4";
 
-	if (strlen(buf) < 15)
-		return -EFAULT;
+	if (count < 15)
+		return -EINVAL;
 
 	if (*off == 0) {
 		if (copy_to_user(buf, &my_id, 15) != 0) {
@@ -54,9 +54,9 @@ static ssize_t hello_write(struct file *file, char *buf,
 };
 
 static const struct file_operations hello_fops = {
-owner:THIS_MODULE,
-read : hello_read,
-write : hello_write,
+	owner:THIS_MODULE,
+	read : hello_read,
+	write : hello_write,
 };
 
 static ssize_t jiffies_read(struct file *file, char *buf,
@@ -67,6 +67,9 @@ static ssize_t jiffies_read(struct file *file, char *buf,
 
 	char jstring[n+1];
 	snprintf(jstring, n+1, "%lu", cur);
+
+	if (count < n)
+		return -EINVAL;
 
 
 	if (*off == 0) {
@@ -81,8 +84,8 @@ static ssize_t jiffies_read(struct file *file, char *buf,
 };
 
 static const struct file_operations jiffies_fops = {
-owner: THIS_MODULE,
-read : jiffies_read,
+	owner: THIS_MODULE,
+	read : jiffies_read,
 };
 
 static ssize_t foo_read(struct file *file, char *buf,
@@ -117,9 +120,9 @@ static ssize_t foo_write(struct file *file, char *buf,
 };
 
 static const struct file_operations foo_fops = {
-owner: THIS_MODULE,
-read : foo_read,
-write : foo_write,
+	owner: THIS_MODULE,
+	read : foo_read,
+	write : foo_write,
 };
 
 int init_module(void)
