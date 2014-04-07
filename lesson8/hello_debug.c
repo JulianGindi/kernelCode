@@ -13,9 +13,9 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("JulianGindi");
 MODULE_DESCRIPTION("A simple hello world module");
 
-static struct dentry *dir = 0;
+static struct dentry *dir;
 static char foo_input[4096];
-static int foo_len = 0;
+static int foo_len;
 
 
 
@@ -24,8 +24,11 @@ static ssize_t hello_read(struct file *file, char *buf,
 {
 	const char *my_id = "f09605a798d4";
 
+	if (strlen(buf) < 15)
+		return -EFAULT;
+
 	if (*off == 0) {
-		if (copy_to_user(buf, &my_id, count) != 0) {
+		if (copy_to_user(buf, &my_id, 15) != 0) {
 			return -EFAULT;
 		} else {
 			(*off)++;
@@ -46,14 +49,14 @@ static ssize_t hello_write(struct file *file, char *buf,
 		return -EFAULT;
 	if (strncmp(user_input, "f09605a798d4", 12) == 0)
 		return count;
-	
+
 	return -EINVAL;
 };
 
 static const struct file_operations hello_fops = {
-	owner: THIS_MODULE,
-	read: hello_read,
-	write: hello_write,
+owner:THIS_MODULE,
+read : hello_read,
+write : hello_write,
 };
 
 static ssize_t jiffies_read(struct file *file, char *buf,
@@ -67,7 +70,7 @@ static ssize_t jiffies_read(struct file *file, char *buf,
 
 
 	if (*off == 0) {
-		if (copy_to_user(buf, &jstring, count) != 0) {
+		if (copy_to_user(buf, &jstring, n) != 0) {
 			return -EFAULT;
 		} else {
 			(*off)++;
@@ -78,8 +81,8 @@ static ssize_t jiffies_read(struct file *file, char *buf,
 };
 
 static const struct file_operations jiffies_fops = {
-	owner: THIS_MODULE,
-	read: jiffies_read,
+owner: THIS_MODULE,
+read : jiffies_read,
 };
 
 static ssize_t foo_read(struct file *file, char *buf,
@@ -87,6 +90,8 @@ static ssize_t foo_read(struct file *file, char *buf,
 {
 
 
+	if (foo_len > 4096)
+		return -EFAULT;
 	if (*off == 0) {
 		if (copy_to_user(buf, &foo_input, foo_len) != 0) {
 			return -EFAULT;
@@ -101,20 +106,20 @@ static ssize_t foo_read(struct file *file, char *buf,
 static ssize_t foo_write(struct file *file, char *buf,
 			   size_t count, loff_t *off)
 {
-	
+
 	if (count > 4096)
 		return -EFAULT;
 	if (copy_from_user(&foo_input, buf, count) != 0)
 		return -EFAULT;
-	
+
 	foo_len = count;
 	return count;
 };
 
 static const struct file_operations foo_fops = {
-	owner: THIS_MODULE,
-	read: foo_read,
-	write: foo_write,
+owner: THIS_MODULE,
+read : foo_read,
+write : foo_write,
 };
 
 int init_module(void)
