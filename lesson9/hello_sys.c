@@ -3,24 +3,24 @@
 #include <linux/init.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
-#include <asm/uaccess.h>
 #include <linux/string.h>
-#include <linux/debugfs.h>
 #include <linux/jiffies.h>
 #include <linux/slab.h>
+#include <linux/kobject.h>
+#include <linux/sysfs.h>
+#include <asm/uaccess.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("JulianGindi");
-MODULE_DESCRIPTION("A simple hello world module");
+MODULE_DESCRIPTION("A simple module using sysfs");
 
-static struct dentry *dir;
 static char foo_input[4096];
 static int foo_len;
 
 
 
-static ssize_t hello_read(struct file *file, char *buf,
-			  size_t count, loff_t *off)
+static ssize_t hello_read(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
 {
 	const char *my_id = "f09605a798d4";
 

@@ -2,3 +2,10 @@
 Vagrantfile
 c_code
 resources
+checkpatch.pl
+*.back
+*/Module.symvers
+*/*.ko
+*/*.mod.*
+*.o
+*/modules.order
