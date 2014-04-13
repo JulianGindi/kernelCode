@@ -14,9 +14,9 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("JulianGindi");
 MODULE_DESCRIPTION("A simple module using sysfs");
 
-static char foo_input[4096];
-static int foo_len;
 
+static char foo_input[PAGE_SIZE];
+static int foo_len;
 
 
 static ssize_t hello_read(struct kobject *kobj, struct kobj_attribute *attr,
@@ -34,11 +34,8 @@ static ssize_t hello_write(struct kobject *kobj, struct kobj_attribute *attr,
 
 	user_input = kmalloc(sizeof(char) * 15, GFP_KERNEL);
 
-	if (!sscanf(buf, "%s", user_input) == 1)
-		return -EFAULT;
-
-	if (strncmp(user_input, "f09605a798d4", 12) == 0)
-		return 15;
+	if (strncmp(buf, "f09605a798d4", 12) == 0)
+		return 12;
 
 	return -EINVAL;
 };
@@ -53,9 +50,11 @@ static ssize_t jiffies_read(struct kobject *kobj, struct kobj_attribute *attr,
 	unsigned long cur = jiffies;
 	const int n = snprintf(NULL, 0, "%lu", cur);
 
+	if (n < 0) 
+		return -EINVAL;
+
 	char jstring[n+1];
 	snprintf(jstring, n+1, "%lu", cur);
-
 
 	return sprintf(buf, "%s\n", jstring);
 };
@@ -67,7 +66,7 @@ static struct kobj_attribute jiffies_attribute =
 static ssize_t foo_read(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf)
 {
-	if (foo_len > 4096)
+	if (foo_len > PAGE_SIZE)
 		return -EINVAL;
 
 	return sprintf(buf, "%s\n", foo_input);
@@ -77,11 +76,10 @@ static ssize_t foo_write(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf, size_t count)
 {
 
-	if (count > 4096)
+	if (count > PAGE_SIZE)
 		return -EINVAL;
 
-	if (!sscanf(buf, "%s", &foo_input) == 1)
-		return -EFAULT;
+	strncpy(foo_input, buf, count);
 
 	foo_len = count;
 	return count;
