@@ -24,43 +24,31 @@ static ssize_t hello_read(struct kobject *kobj, struct kobj_attribute *attr,
 {
 	const char *my_id = "f09605a798d4";
 
-	if (count < 15)
-		return -EINVAL;
-
-	if (*off == 0) {
-		if (copy_to_user(buf, &my_id, 15) != 0) {
-			return -EFAULT;
-		} else {
-			(*off)++;
-			return 12;
-		}
-	} else
-		return 0;
+	return sprintf(buf, "%s\n", my_id);
 };
 
-static ssize_t hello_write(struct file *file, char *buf,
-			   size_t count, loff_t *off)
+static ssize_t hello_write(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
 {
-	char user_input[15];
+	char *user_input;
 
-	if (count <= 0 || count > 15)
-		return -EINVAL;
-	if (copy_from_user(&user_input, buf, count) != 0)
+	user_input = kmalloc(sizeof(char) * 15, GFP_KERNEL);
+
+	if (!sscanf(buf, "%s", user_input) == 1)
 		return -EFAULT;
+
 	if (strncmp(user_input, "f09605a798d4", 12) == 0)
-		return count;
+		return 15;
 
 	return -EINVAL;
 };
 
-static const struct file_operations hello_fops = {
-	owner:THIS_MODULE,
-	read : hello_read,
-	write : hello_write,
-};
+static struct kobj_attribute hello_attribute =
+	__ATTR(id, 0666, hello_read, hello_write);
 
-static ssize_t jiffies_read(struct file *file, char *buf,
-			  size_t count, loff_t *off)
+
+static ssize_t jiffies_read(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
 {
 	unsigned long cur = jiffies;
 	const int n = snprintf(NULL, 0, "%lu", cur);
@@ -68,118 +56,77 @@ static ssize_t jiffies_read(struct file *file, char *buf,
 	char jstring[n+1];
 	snprintf(jstring, n+1, "%lu", cur);
 
-	if (count < n)
-		return -EINVAL;
 
-
-	if (*off == 0) {
-		if (copy_to_user(buf, &jstring, n) != 0) {
-			return -EFAULT;
-		} else {
-			(*off)++;
-			return 12;
-		}
-	} else
-		return 0;
+	return sprintf(buf, "%s\n", jstring);
 };
 
-static const struct file_operations jiffies_fops = {
-	owner: THIS_MODULE,
-	read : jiffies_read,
-};
+static struct kobj_attribute jiffies_attribute =
+	__ATTR(jiffies, 0444, jiffies_read, NULL);
 
-static ssize_t foo_read(struct file *file, char *buf,
-			  size_t count, loff_t *off)
+
+static ssize_t foo_read(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
 {
-
-
 	if (foo_len > 4096)
 		return -EINVAL;
-	if (*off == 0) {
-		if (copy_to_user(buf, &foo_input, foo_len) != 0) {
-			return -EFAULT;
-		} else {
-			(*off)++;
-			return count;
-		}
-	} else
-		return 0;
+
+	return sprintf(buf, "%s\n", foo_input);
 };
 
-static ssize_t foo_write(struct file *file, char *buf,
-			   size_t count, loff_t *off)
+static ssize_t foo_write(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf, size_t count)
 {
 
 	if (count > 4096)
 		return -EINVAL;
-	if (copy_from_user(&foo_input, buf, count) != 0)
+
+	if (!sscanf(buf, "%s", &foo_input) == 1)
 		return -EFAULT;
 
 	foo_len = count;
 	return count;
 };
 
-static const struct file_operations foo_fops = {
-	owner: THIS_MODULE,
-	read : foo_read,
-	write : foo_write,
+static struct kobj_attribute foo_attribute =
+	__ATTR(foo, 0644, foo_read, foo_write);
+
+static struct attribute *attrs[] = {
+	&hello_attribute.attr,
+	&jiffies_attribute.attr,
+	&foo_attribute.attr,
+	NULL,
 };
 
-int init_module(void)
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+};
+
+static struct kobject *hello_kobj;
+
+static int __init hello_init(void)
 {
-	struct dentry *junk;
-
-	dir = debugfs_create_dir("eudyptula", 0);
-	if (!dir) {
-		printk(KERN_DEBUG "hello_debug: failed to create dir");
-		return -1;
-	}
-
-	junk = debugfs_create_file(
-			"id",
-			0666,
-			dir,
-			NULL,
-			&hello_fops);
-
-	if (!junk) {
-		printk(KERN_DEBUG "hello_debug: could not create id");
-		return -1;
-	}
-
-	junk = debugfs_create_file(
-			"jiffies",
-			0444,
-			dir,
-			NULL,
-			&jiffies_fops);
-
-	if (!junk) {
-		printk(KERN_DEBUG "hello debug: could not create jiffies");
-		return -1;
-	}
-
-	junk = debugfs_create_file(
-			"foo",
-			0644,
-			dir,
-			foo_input,
-			&foo_fops);
-
-	if (!junk) {
-		printk(KERN_DEBUG "hello debug: could now create foo");
-		return -1;
-	}
-
+	int retval;
 
 	/* Never getting rid of this line */
 	printk(KERN_DEBUG "Hello world!\n");
 
-	return 0;
+
+	hello_kobj = kobject_create_and_add("eudyptula", kernel_kobj);
+	if (!hello_kobj)
+		return -ENOMEM;
+
+	retval = sysfs_create_group(hello_kobj, &attr_group);
+	if (retval)
+		kobject_put(hello_kobj);
+
+	return retval;
 };
 
 
-void cleanup_module(void)
+static void __exit hello_exit(void)
 {
-	debugfs_remove_recursive(dir);
-NVAL };
+	kobject_put(hello_kobj);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
