@@ -30,10 +30,6 @@ static ssize_t hello_read(struct kobject *kobj, struct kobj_attribute *attr,
 static ssize_t hello_write(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf)
 {
-	char *user_input;
-
-	user_input = kmalloc(sizeof(char) * 15, GFP_KERNEL);
-
 	if (strncmp(buf, "f09605a798d4", 12) == 0)
 		return 12;
 
@@ -49,11 +45,11 @@ static ssize_t jiffies_read(struct kobject *kobj, struct kobj_attribute *attr,
 {
 	unsigned long cur = jiffies;
 	const int n = snprintf(NULL, 0, "%lu", cur);
+	char jstring[n+1];
 
-	if (n < 0) 
+	if (n < 0)
 		return -EINVAL;
 
-	char jstring[n+1];
 	snprintf(jstring, n+1, "%lu", cur);
 
 	return sprintf(buf, "%s\n", jstring);
@@ -108,7 +104,6 @@ static int __init hello_init(void)
 	/* Never getting rid of this line */
 	printk(KERN_DEBUG "Hello world!\n");
 
-
 	hello_kobj = kobject_create_and_add("eudyptula", kernel_kobj);
 	if (!hello_kobj)
 		return -ENOMEM;
@@ -120,11 +115,9 @@ static int __init hello_init(void)
 	return retval;
 };
 
-
 static void __exit hello_exit(void)
 {
 	kobject_put(hello_kobj);
 }
-
 module_init(hello_init);
 module_exit(hello_exit);
